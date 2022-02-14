@@ -6,6 +6,7 @@ import {
   fluentCard,
   fluentButton,
   fluentProgress,
+  fluentCheckbox,
 } from "@fluentui/web-components";
 
 import App from "./App.vue";
@@ -16,7 +17,8 @@ const app = createApp(App);
 provideFluentDesignSystem().register(
   fluentCard(),
   fluentButton(),
-  fluentProgress()
+  fluentProgress(),
+  fluentCheckbox()
 );
 
 app.use(createPinia());

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import TheWelcome from "@/components/TheWelcome.vue";
+import Cube from "@/components/Cube.vue";
 </script>
 
 <template>
   <main>
-    <TheWelcome />
+    <Cube />
   </main>
 </template>
