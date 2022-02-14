@@ -2,6 +2,10 @@
 defineProps<{
   msg: string;
 }>();
+
+function onClick() {
+  console.log("Yay!");
+}
 </script>
 
 <template>
@@ -12,6 +16,14 @@ defineProps<{
       <a target="_blank" href="https://vitejs.dev/">Vite</a> +
       <a target="_blank" href="https://vuejs.org/">Vue 3</a>. What's next?
     </h3>
+
+    <fluent-card>
+      <h2>{{ msg }}</h2>
+      <fluent-button appearance="accent" v-on:click="onClick"
+        >Click Me</fluent-button
+      >
+    </fluent-card>
+    <fluent-progress value="64"></fluent-progress>
   </div>
 </template>
 
