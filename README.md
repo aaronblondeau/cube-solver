@@ -50,3 +50,9 @@ npm run test:unit
 ```sh
 npm run lint
 ```
+
+
+
+npx cypress open-ct
+npx cypress run-ct
+https://github.com/cypress-io/cypress-component-examples/blob/main/vite-vue/src/components/HelloWorld.spec.js
