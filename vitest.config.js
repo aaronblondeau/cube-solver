@@ -12,6 +12,7 @@ export default {
     }),
   ],
   test: {
+    include: ['src/**/__tests__/*.unit.spec.ts'],
     deps: {
       inline: ["@microsoft/fast-colors"],
     },
