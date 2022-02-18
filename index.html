@@ -1,13 +1,136 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite App</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cube Solver</title>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+  <button x-data @click="test">Start</button>
+  <button x-data @click="square">Square</button>
+  
+  <script src="js/three.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const width = 400; // window.innerWidth
+    const height = 400; // window.innerHeight
+    const camera = new THREE.PerspectiveCamera( 60, width / height, 0.1, 1000 );
+    camera.position.y = camera.position.y + 1
+
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize( width, height);
+    document.body.appendChild( renderer.domElement );
+
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+    const cube = new THREE.Mesh( geometry, material );
+    const cube2 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial( { color: 0x0000ff } ))
+    const cube3 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial( { color: 0xff0000 } ))
+    
+    cube.position.set(1, 1, 0)
+    cube2.position.set(0, 1,0)
+    cube3.position.set(-1, 1,0)
+    scene.add( cube );
+    scene.add( cube2 );
+    scene.add( cube3 );
+
+    const group = new THREE.Group();
+    group.add( cube );
+    group.add( cube2 );
+    group.add( cube3 );
+    scene.add(group)
+
+    const sphere = new THREE.Mesh( new THREE.SphereGeometry( 0.5, 32, 16 ), new THREE.MeshBasicMaterial( { color: 0xffff00 } ) );
+    scene.add( sphere );
+
+    // pivotPoint = new THREE.Object3D();
+    // cube.add(pivotPoint);
+
+    const axesHelper = new THREE.AxesHelper( 5 );
+    scene.add( axesHelper );
+
+    camera.position.z = 8;
+
+    let ticks = 0;
+
+    function testRotate() {
+      if (ticks < 100) {
+        requestAnimationFrame( testRotate );
+      }
+      cube.rotation.x += 0.01;
+      // cube.rotation.y += 0.01;
+      renderer.render( scene, camera );
+      ticks++;
+    }
+
+    function square() {
+      // cube.rotation.set(new THREE.Vector3(0, 0, 0))
+      // // cube2.rotation.set(0)
+      // // cube3.rotation.set(0)
+      // // group.rotation.set(new THREE.Vector3(0, 0, 0))
+      // // cube.position.set(2, 2, 0)
+      // renderer.render( scene, camera );
+
+      group.rotation.x = 0 // 90 * Math.PI / 180;
+      group.rotation.y = 0 // 90 * Math.PI / 180;
+      group.rotation.z = 90 * Math.PI / 180;
+      group.position.x = 0;
+      group.position.y = 0;
+      group.position.z = 0;
+      renderer.render( scene, camera );
+      requestAnimationFrame( () => {} )
+    }
+
+    function test2() {
+      if (ticks < 59) {
+        requestAnimationFrame( test2 );
+      }
+      // cube.rotateX(0.1);
+
+      // Same as ^
+      // cube.rotateOnAxis(new THREE.Vector3( 1, 0, 0 ), 0.1)
+
+      // cube.translateX(0.1);
+      
+      // cube.applyMatrix( new THREE.Matrix4().makeTranslation(0.05, 0, 0) );
+
+      const radians = 90 * Math.PI / 180;
+      // rotateAboutPoint(cube, new THREE.Vector3(0, 0 ,0), new THREE.Vector3(0, 0 ,1), radians / 60)
+      rotateAboutPoint(group, new THREE.Vector3(0, 0 ,0), new THREE.Vector3(0, 0 ,1), radians / 60)
+
+      renderer.render( scene, camera );
+      ticks++;
+    }
+
+    function rotateAboutPoint(obj, point, axis, theta, pointIsWorld){
+      pointIsWorld = (pointIsWorld === undefined)? false : pointIsWorld;
+
+      if(pointIsWorld){
+          obj.parent.localToWorld(obj.position); // compensate for world coordinate
+      }
+
+      obj.position.sub(point); // remove the offset
+      obj.position.applyAxisAngle(axis, theta); // rotate the POSITION
+      obj.position.add(point); // re-add the offset
+
+      if(pointIsWorld){
+          obj.parent.worldToLocal(obj.position); // undo world coordinates compensation
+      }
+
+      obj.rotateOnAxis(axis, theta); // rotate the OBJECT
+    }
+
+    renderer.render( scene, camera );
+
+    function test() {
+      // console.log('HERE')
+      // cube.translate(0.1, 0, 0)
+      ticks = 0;
+      test2()
+      // testRotate()
+    }
+  </script>
+</body>
 </html>
