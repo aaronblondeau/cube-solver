@@ -6,12 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cube Solver</title>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script type="module" src="https://unpkg.com/@fluentui/web-components"></script>
 </head>
 <body>
-  <button x-data @click="test">Start</button>
-  <button x-data @click="square">Square</button>
+  <fluent-button x-data appearance="accent" @click="test">Start</fluent-button>
+  <fluent-button x-data appearance="accent" @click="reset">Reset</fluent-button>
   
   <script src="js/three.js"></script>
+  <script src="js/OrbitControls.js"></script>
   <script>
     const scene = new THREE.Scene();
     const width = 400; // window.innerWidth
@@ -23,15 +25,37 @@
     renderer.setSize( width, height);
     document.body.appendChild( renderer.domElement );
 
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+
+    const geometry = new THREE.BoxGeometry(1, 1, 1).toNonIndexed();
+    const material = new THREE.MeshBasicMaterial( { vertexColors: true } ); 
+    const positionAttribute = geometry.getAttribute( 'position' );
+    const colorMap = [
+      new THREE.Color('white'), // right
+      new THREE.Color('yellow'), // left
+      new THREE.Color('blue'), // up
+      new THREE.Color('orange'), // down
+      new THREE.Color('red'), // top
+      new THREE.Color('green'), // bottom
+    ]
+    let colorIndex = 0;
+		const colors = [];
+    // Why is this such a pain in the ass?
+		for ( let i = 0; i < positionAttribute.count; i += 3 ) {
+      const color = colorMap[Math.floor(i / 6)]
+			colors.push( color.r, color.g, color.b );
+			colors.push( color.r, color.g, color.b );
+			colors.push( color.r, color.g, color.b );
+		}
+    console.log(colors)
+    geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
     const cube = new THREE.Mesh( geometry, material );
+
     const cube2 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial( { color: 0x0000ff } ))
     const cube3 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial( { color: 0xff0000 } ))
     
-    cube.position.set(1, 1, 0)
-    cube2.position.set(0, 1,0)
-    cube3.position.set(-1, 1,0)
+    cube.position.set(1.1, 1.1, 0)
+    cube2.position.set(0, 1.1,0)
+    cube3.position.set(-1.1, 1.1,0)
     scene.add( cube );
     scene.add( cube2 );
     scene.add( cube3 );
@@ -51,9 +75,21 @@
     const axesHelper = new THREE.AxesHelper( 5 );
     scene.add( axesHelper );
 
+    camera.position.x = 0;
+    camera.position.y = 1;
     camera.position.z = 8;
+    camera.lookAt(new THREE.Vector3(0,0,0))
+    const controls = new THREE.OrbitControls( camera, renderer.domElement );
 
     let ticks = 0;
+
+    function animateCamera() {
+      requestAnimationFrame( animateCamera );
+      // required if controls.enableDamping or controls.autoRotate are set to true
+      controls.update();
+      renderer.render( scene, camera );
+    }
+    animateCamera()
 
     function testRotate() {
       if (ticks < 100) {
@@ -65,41 +101,28 @@
       ticks++;
     }
 
-    function square() {
-      // cube.rotation.set(new THREE.Vector3(0, 0, 0))
-      // // cube2.rotation.set(0)
-      // // cube3.rotation.set(0)
-      // // group.rotation.set(new THREE.Vector3(0, 0, 0))
-      // // cube.position.set(2, 2, 0)
-      // renderer.render( scene, camera );
-
-      group.rotation.x = 0 // 90 * Math.PI / 180;
-      group.rotation.y = 0 // 90 * Math.PI / 180;
-      group.rotation.z = 90 * Math.PI / 180;
+    function reset() {
+      group.rotation.x = 0;
+      group.rotation.y = 0;
+      group.rotation.z = 0;
       group.position.x = 0;
       group.position.y = 0;
       group.position.z = 0;
+
+      camera.position.x = 0;
+      camera.position.y = 1;
+      camera.position.z = 8;
+
       renderer.render( scene, camera );
       requestAnimationFrame( () => {} )
     }
 
-    function test2() {
+    function animateRotateFace() {
       if (ticks < 59) {
-        requestAnimationFrame( test2 );
+        requestAnimationFrame( animateRotateFace );
       }
-      // cube.rotateX(0.1);
-
-      // Same as ^
-      // cube.rotateOnAxis(new THREE.Vector3( 1, 0, 0 ), 0.1)
-
-      // cube.translateX(0.1);
-      
-      // cube.applyMatrix( new THREE.Matrix4().makeTranslation(0.05, 0, 0) );
-
       const radians = 90 * Math.PI / 180;
-      // rotateAboutPoint(cube, new THREE.Vector3(0, 0 ,0), new THREE.Vector3(0, 0 ,1), radians / 60)
       rotateAboutPoint(group, new THREE.Vector3(0, 0 ,0), new THREE.Vector3(0, 0 ,1), radians / 60)
-
       renderer.render( scene, camera );
       ticks++;
     }
@@ -125,11 +148,8 @@
     renderer.render( scene, camera );
 
     function test() {
-      // console.log('HERE')
-      // cube.translate(0.1, 0, 0)
       ticks = 0;
-      test2()
-      // testRotate()
+      animateRotateFace()
     }
   </script>
 </body>
