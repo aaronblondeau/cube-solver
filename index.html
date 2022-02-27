@@ -15,6 +15,173 @@
   <script src="js/three.js"></script>
   <script src="js/OrbitControls.js"></script>
   <script>
+    // r = red
+    // g = green
+    // o = orange
+    // w = white
+    // b = blue
+    // y = yellow
+
+    // [M]iddle Pieces:
+    // Mr = Center red
+    // Mg = Center green
+    // Mo = Center orange
+    // Mw = Center white
+    // Mb = Center blue
+    // My = Center yellow
+
+    // [C]orner Pieces:
+    // Cwog
+    // Cwgr
+    // Cwrb
+    // Cwbo
+    // Cygo
+    // Cyob
+    // Cybr
+    // Cyrg
+
+    // [E]dge Pieces
+    // Ewo
+    // Ewg
+    // EWr
+    // EWb
+    // Erb
+    // Ebo
+    // Eog
+    // Egr
+    // Eyb
+    // Eyr
+    // Eyg
+    // Eyo
+
+    // TODO:
+    // for each piece
+    // face color defs : n s e w b t
+    // x, y, z rotation 0, 90, 180, 270
+
+    function facesFromId(id) {
+      const faces = {}
+      if (id.includes('y')) {
+        faces.b = new THREE.Color('yellow')
+      } else {
+        faces.b = new THREE.Color('black')
+      }
+      if (id.includes('w')) {
+        faces.t = new THREE.Color('white')
+      } else {
+        faces.t = new THREE.Color('black')
+      }
+      if (id.includes('b')) {
+        faces.n = new THREE.Color('blue')
+      } else {
+        faces.n = new THREE.Color('black')
+      }
+      if (id.includes('g')) {
+        faces.s = new THREE.Color('green')
+      } else {
+        faces.s = new THREE.Color('black')
+      }
+      if (id.includes('r')) {
+        faces.e = new THREE.Color('red')
+      } else {
+        faces.e = new THREE.Color('black')
+      }
+      if (id.includes('o')) {
+        faces.w = new THREE.Color('orange')
+      } else {
+        faces.w = new THREE.Color('black')
+      }
+      return faces
+    }
+
+    class Piece {
+      constructor(id, posX, posY, posZ) {
+        this.id = id;
+        this.faces = facesFromId(id);
+
+        this.rotX = 0
+        this.rotY = 0
+        this.rotZ = 0
+        this.posX = posX
+        this.posY = posY
+        this.posZ = posZ
+
+        this.originalRotX = this.rotX
+        this.originalRotY = this.rotY
+        this.originalRotZ = this.rotZ
+        this.originalPosX = this.xPos
+        this.originalPosY = this.yPos
+        this.originalPosZ = this.zPos
+
+        const geometry = new THREE.BoxGeometry(1, 1, 1).toNonIndexed()
+        const material = new THREE.MeshBasicMaterial( { vertexColors: true } )
+        const positionAttribute = geometry.getAttribute( 'position' )
+
+        const colorMap = [
+          new THREE.Color(this.faces.e), // e
+          new THREE.Color(this.faces.w), // w
+          new THREE.Color(this.faces.n), // n
+          new THREE.Color(this.faces.s), // s
+          new THREE.Color(this.faces.t), // t
+          new THREE.Color(this.faces.b), // b
+        ]
+        let colorIndex = 0
+        const colors = []
+        // Found here : https://jsfiddle.net/bsjgftqc/2/
+        // Why is this such a pain in the ass?
+        for ( let i = 0; i < positionAttribute.count; i += 3 ) {
+          const color = colorMap[Math.floor(i / 6)]
+          colors.push( color.r, color.g, color.b )
+          colors.push( color.r, color.g, color.b )
+          colors.push( color.r, color.g, color.b )
+        }
+        geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) )
+        const cube = new THREE.Mesh( geometry, material )
+        cube.position.set(posX, posY, posZ)
+        this.presence = cube;
+      }
+    }
+
+    // Define initial state from the bottom up
+    // Yellow on Bottom
+    // White on Top
+    // Orange on Left
+    // Red on Right
+    // Green Facing
+    // Blue Away
+
+    //           \/ blue side
+    //          0 1 2
+    // Orange > 3 4 5 < Red
+    //          6 7 8
+    //            /\ green side
+
+    // Note : data set that may be useful for determining a cube's initial state from a few known sides
+    // https://www.kaggle.com/antbob/rubiks-cube-cfop-solutions
+
+    class Cube {
+      constructor() {
+        this.state = [
+          
+          new Piece('Cyob', -1.1, 1.1, -1.1), new Piece('Eyb', 0, 1.1, -1.1), new Piece('Cybr', 1.1, 1.1, -1.1),
+          new Piece('Eyo', -1.1, 0, -1.1), new Piece('My', 0, 0, -1.1), new Piece('Eyr', 1.1, 0, -1.1),
+          new Piece('Cygo', -1.1, -1.1, -1.1), new Piece('Eyg', 0, -1.1, -1.1), new Piece('Cyrg', 1.1, -1.1, -1.1),
+
+          new Piece('Ebo', -1.1, 1.1, 0), new Piece('Mb', 0, 1.1, 0), new Piece('Erb', 1.1, 1.1, 0),
+          new Piece('Mo', -1.1, 0, 0), new Piece('X', 0, 0, 0), new Piece('Mr', 1.1, 0, 0),
+          new Piece('Eog', -1.1, -1.1, 0), new Piece('Mg', 0, -1.1, 0), new Piece('Egr', 1.1, -1.1, 0),
+
+          new Piece('Cwbo', -1.1, 1.1, 1.1), new Piece('Ewb', 0, 1.1, 1.1), new Piece('Cwrb', 1.1, 1.1, 1.1),
+          new Piece('Ewo', -1.1, 0, 1.1), new Piece('Mw', 0, 0, 1.1), new Piece('Ewr', 1.1, 0, 1.1),
+          new Piece('Cwog', -1.1, -1.1, 1.1), new Piece('Ewg', 0, -1.1, 1.1), new Piece('Cwgr', 1.1, -1.1, 1.1)
+          
+        ]
+      }
+    }
+
+
+
+
     const scene = new THREE.Scene();
     const width = 400; // window.innerWidth
     const height = 400; // window.innerHeight
@@ -25,49 +192,55 @@
     renderer.setSize( width, height);
     document.body.appendChild( renderer.domElement );
 
+    const cube = new Cube()
+    for (const piece of cube.state) {
+      scene.add(piece.presence)
+    }
 
-    const geometry = new THREE.BoxGeometry(1, 1, 1).toNonIndexed();
-    const material = new THREE.MeshBasicMaterial( { vertexColors: true } ); 
-    const positionAttribute = geometry.getAttribute( 'position' );
-    const colorMap = [
-      new THREE.Color('white'), // right
-      new THREE.Color('yellow'), // left
-      new THREE.Color('blue'), // up
-      new THREE.Color('orange'), // down
-      new THREE.Color('red'), // top
-      new THREE.Color('green'), // bottom
-    ]
-    let colorIndex = 0;
-		const colors = [];
-    // Why is this such a pain in the ass?
-		for ( let i = 0; i < positionAttribute.count; i += 3 ) {
-      const color = colorMap[Math.floor(i / 6)]
-			colors.push( color.r, color.g, color.b );
-			colors.push( color.r, color.g, color.b );
-			colors.push( color.r, color.g, color.b );
-		}
-    console.log(colors)
-    geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
-    const cube = new THREE.Mesh( geometry, material );
 
-    const cube2 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial( { color: 0x0000ff } ))
-    const cube3 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial( { color: 0xff0000 } ))
+    // const geometry = new THREE.BoxGeometry(1, 1, 1).toNonIndexed();
+    // const material = new THREE.MeshBasicMaterial( { vertexColors: true } ); 
+    // const positionAttribute = geometry.getAttribute( 'position' );
+    // const colorMap = [
+    //   new THREE.Color('white'), // right
+    //   new THREE.Color('yellow'), // left
+    //   new THREE.Color('blue'), // up
+    //   new THREE.Color('orange'), // down
+    //   new THREE.Color('red'), // top
+    //   new THREE.Color('green'), // bottom
+    // ]
+    // let colorIndex = 0;
+		// const colors = [];
+    // // Found here : https://jsfiddle.net/bsjgftqc/2/
+    // // Why is this such a pain in the ass?
+		// for ( let i = 0; i < positionAttribute.count; i += 3 ) {
+    //   const color = colorMap[Math.floor(i / 6)]
+		// 	colors.push( color.r, color.g, color.b );
+		// 	colors.push( color.r, color.g, color.b );
+		// 	colors.push( color.r, color.g, color.b );
+		// }
+    // console.log(colors)
+    // geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+    // const cube = new THREE.Mesh( geometry, material );
+
+    // const cube2 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial( { color: 0x0000ff } ))
+    // const cube3 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial( { color: 0xff0000 } ))
     
-    cube.position.set(1.1, 1.1, 0)
-    cube2.position.set(0, 1.1,0)
-    cube3.position.set(-1.1, 1.1,0)
-    scene.add( cube );
-    scene.add( cube2 );
-    scene.add( cube3 );
+    // cube.position.set(1.1, 1.1, 0)
+    // cube2.position.set(0, 1.1,0)
+    // cube3.position.set(-1.1, 1.1,0)
+    // scene.add( cube );
+    // scene.add( cube2 );
+    // scene.add( cube3 );
 
-    const group = new THREE.Group();
-    group.add( cube );
-    group.add( cube2 );
-    group.add( cube3 );
-    scene.add(group)
+    // const group = new THREE.Group();
+    // group.add( cube );
+    // group.add( cube2 );
+    // group.add( cube3 );
+    // scene.add(group)
 
-    const sphere = new THREE.Mesh( new THREE.SphereGeometry( 0.5, 32, 16 ), new THREE.MeshBasicMaterial( { color: 0xffff00 } ) );
-    scene.add( sphere );
+    // const sphere = new THREE.Mesh( new THREE.SphereGeometry( 0.5, 32, 16 ), new THREE.MeshBasicMaterial( { color: 0xffff00 } ) );
+    // scene.add( sphere );
 
     // pivotPoint = new THREE.Object3D();
     // cube.add(pivotPoint);
@@ -102,12 +275,14 @@
     }
 
     function reset() {
-      group.rotation.x = 0;
-      group.rotation.y = 0;
-      group.rotation.z = 0;
-      group.position.x = 0;
-      group.position.y = 0;
-      group.position.z = 0;
+      for (const piece of cube.state) {
+        piece.presence.rotation.x = piece.originalRotX;
+        piece.presence.rotation.y = piece.originalRotY;
+        piece.presence.rotation.z = piece.originalRotZ;
+        piece.presence.position.x = piece.originalPosX;
+        piece.presence.position.y = piece.originalPosY;
+        piece.presence.position.z = piece.originalPosZ;
+      }
 
       camera.position.x = 0;
       camera.position.y = 1;
