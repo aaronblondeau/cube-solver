@@ -98,7 +98,7 @@
     }
 
     class Piece {
-      constructor(id, posX, posY, posZ, index) {
+      constructor(id, index) {
         this.id = id;
         this.faces = facesFromId(id);
 
@@ -108,16 +108,10 @@
         this.rotX = 0
         this.rotY = 0
         this.rotZ = 0
-        this.posX = posX
-        this.posY = posY
-        this.posZ = posZ
 
         this.originalRotX = this.rotX
         this.originalRotY = this.rotY
         this.originalRotZ = this.rotZ
-        this.originalPosX = this.posX
-        this.originalPosY = this.posY
-        this.originalPosZ = this.posZ
 
         this.render()
       }
@@ -147,7 +141,8 @@
         }
         geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) )
         const cube = new THREE.Mesh( geometry, material )
-        cube.position.set(this.posX, this.posY, this.posZ)
+        const pos = positionMap[this.index]
+        cube.position.set(pos.X, pos.Y, pos.Z)
         cube.rotation.x = this.rotX;
         cube.rotation.y = this.rotY;
         cube.rotation.z = this.rotZ;
@@ -173,26 +168,59 @@
     // Note : data set that may be useful for determining a cube's initial state from a few known sides
     // https://www.kaggle.com/antbob/rubiks-cube-cfop-solutions
 
+    const positionMap = [
+      {X: -1.1, Y: 1.1, Z: -1.1},
+      {X: 0,  Y: 1.1, Z: -1.1 },
+      {X: 1.1, Y: 1.1, Z: -1.1},
+      
+      {X: -1.1, Y: 0, Z: -1.1},
+      {X: 0, Y: 0, Z: -1.1},
+      {X: 1.1, Y: 0, Z: -1.1},
+      
+      {X: -1.1, Y: -1.1, Z: -1.1},
+      {X: 0,  Y: -1.1, Z: -1.1},
+      {X: 1.1, Y: -1.1, Z: -1.1},
+
+      {X: -1.1, Y: 1.1, Z: 0},
+      {X: 0, Y: 1.1, Z: 0},
+      {X: 1.1, Y: 1.1, Z: 0},
+      
+      {X: -1.1, Y: 0, Z: 0},
+      {X: 0, Y: 0, Z: 0},
+      {X: 1.1, Y: 0, Z: 0},
+      
+      {X: -1.1, Y: -1.1, Z: 0},
+      {X: 0, Y:-1.1, Z: 0},
+      {X: 1.1, Y: -1.1, Z: 0},
+
+      {X: -1.1, Y: 1.1, Z: 1.1},
+      {X: 0, Y:1.1, Z: 1.1},
+      {X: 1.1, Y: 1.1, Z: 1.1},
+      
+      {X: -1.1, Y: 0, Z: 1.1},
+      {X: 0, Y: 0, Z: 1.1},
+      {X: 1.1, Y: 0, Z: 1.1},
+      
+      {X: -1.1, Y: -1.1, Z: 1.1},
+      {X: 0, Y: -1.1, Z: 1.1},
+      {X: 1.1, Y: -1.1, Z: 1.1}
+    ]
+
     class Cube {
       busy = false
       
-      constructor(scene) {
+      constructor(ids, scene) {
         this.scene = scene
-        this.state = [
-          
-          new Piece('Cyob', -1.1, 1.1, -1.1, 0), new Piece('Eyb', 0, 1.1, -1.1, 1), new Piece('Cybr', 1.1, 1.1, -1.1, 2),
-          new Piece('Eyo', -1.1, 0, -1.1, 3), new Piece('My', 0, 0, -1.1, 4), new Piece('Eyr', 1.1, 0, -1.1, 5),
-          new Piece('Cygo', -1.1, -1.1, -1.1, 6), new Piece('Eyg', 0, -1.1, -1.1, 7), new Piece('Cyrg', 1.1, -1.1, -1.1, 8),
 
-          new Piece('Ebo', -1.1, 1.1, 0, 9), new Piece('Mb', 0, 1.1, 0, 10), new Piece('Erb', 1.1, 1.1, 0, 11),
-          new Piece('Mo', -1.1, 0, 0, 12), new Piece('X', 0, 0, 0, 13), new Piece('Mr', 1.1, 0, 0, 14),
-          new Piece('Eog', -1.1, -1.1, 0, 15), new Piece('Mg', 0, -1.1, 0, 16), new Piece('Egr', 1.1, -1.1, 0, 17),
+        const state = []
 
-          new Piece('Cwbo', -1.1, 1.1, 1.1, 18), new Piece('Ewb', 0, 1.1, 1.1, 19), new Piece('Cwrb', 1.1, 1.1, 1.1, 20),
-          new Piece('Ewo', -1.1, 0, 1.1, 21), new Piece('Mw', 0, 0, 1.1, 22), new Piece('Ewr', 1.1, 0, 1.1, 23),
-          new Piece('Cwog', -1.1, -1.1, 1.1, 24), new Piece('Ewg', 0, -1.1, 1.1, 25), new Piece('Cwgr', 1.1, -1.1, 1.1, 26)
-          
-        ]
+        let index = 0
+        for(const id of ids) {
+          state.push(new Piece(id, index))
+          index++
+        }
+
+        this.state = state
         for (const piece of this.state) {
           scene.add(piece.presence)
         }
@@ -200,169 +228,146 @@
 
       reset () {
         for (const piece of this.state) {
-          piece.rotX = piece.originalRotX;
-          piece.rotY = piece.originalRotY;
-          piece.rotZ = piece.originalRotZ;
-          piece.posX = piece.originalPosX;
-          piece.posY = piece.originalPosY;
-          piece.posZ = piece.originalPosZ;
+          piece.rotX = piece.originalRotX
+          piece.rotY = piece.originalRotY
+          piece.rotZ = piece.originalRotZ
           piece.index = piece.originalIndex
           piece.render()
         }
 
         this.state.sort((a, b) => (a.index > b.index) ? 1 : -1)
-
-        // TODO - restore pieces positions in state
       }
 
-      updatePieceState () {
+      updatePieceIndex () {
         let i = 0
         for (const piece of this.state) {
           piece.index = i
+
+          // console.log(piece.id, piece.rotX * 180 / Math.PI, piece.rotY * 180 / Math.PI, piece.rotZ * 180 / Math.PI)
           i++
+
+          if (piece.id === 'Cwgr') {
+            console.log(rad2deg(piece.rotX), rad2deg(piece.rotY), rad2deg(piece.rotZ))
+          }
+        }
+      }
+
+      async rotate(pieceIndexes, state, axis, direction) {
+        if (this.busy) { return }
+        this.busy = true
+        const promises = []
+        for (const index of pieceIndexes) {
+          const piece = this.state[index]
+          promises.push(rotatePiece(piece, axis, direction))
+          piece['rot' + axis] += (Math.PI / 2) * direction
+        }
+        await Promise.all(promises)
+
+        this.state = state
+
+        this.updatePieceIndex()
+
+        for (const index of pieceIndexes) {
+          const piece = this.state[index]
+          // piece.wrapper.remove(piece.presence)
+          
+          piece.render()
+          scene.add(piece.presence)
+
+          scene.remove(piece.wrapper)
         }
 
-        // // Align rotations
-        // piece.rotX = this.correctRotation(piece.rotX)
-        // piece.rotY = this.correctRotation(piece.rotY)
-        // piece.rotZ = this.correctRotation(piece.rotZ)
-
-        // // Align positions
-        // piece.posX = Math.round(piece.presence.position.x)
-        // piece.posY = Math.round(piece.presence.position.y)
-        // piece.posZ = Math.round(piece.presence.position.z)
-        // if (piece.posX === 1) { piece.posX = 1.1}
-        // if (piece.posX === -1) { piece.posX = -1.1}
-        // if (piece.posY === 1) { piece.posY = 1.1}
-        // if (piece.posY === -1) { piece.posY = -1.1}
-        // if (piece.posZ === 1) { piece.posZ = 1.1}
-        // if (piece.posZ === -1) { piece.posZ = -1.1}
-        // // piece.presence.position.x = piece.posX
-        // // piece.presence.position.y = piece.posY
-        // // piece.presence.position.z = piece.posZ
-
-        // console.log(piece.posX, piece.posY, piece.posX)
+        this.busy = false
       }
 
       async R () {
-        if (this.busy) { return }
-        this.busy = true
-        const pieceIndexes = [2, 5, 8, 11, 14, 17, 20, 23, 26]
-        const promises = []
-        for (const index of pieceIndexes) {
-          const piece = this.state[index]
-          promises.push(rotatePiece(piece, 'X', -1))
-          piece.rotX -= (Math.PI / 2)
-        }
-        await Promise.all(promises)
+        await this.rotate(
+          [2, 5, 8, 11, 14, 17, 20, 23, 26],
+          [
+            this.state[0], this.state[1], this.state[20],
+            this.state[3], this.state[4], this.state[11],
+            this.state[6], this.state[7], this.state[2],
 
-        this.busy = false
-        
-        this.state = [
-          this.state[0], this.state[1], this.state[20],
-          this.state[3], this.state[4], this.state[11],
-          this.state[6], this.state[7], this.state[2],
+            this.state[9], this.state[10], this.state[23],
+            this.state[12], this.state[13], this.state[14],
+            this.state[15], this.state[16], this.state[5],
 
-          this.state[9], this.state[10], this.state[23],
-          this.state[12], this.state[13], this.state[14],
-          this.state[15], this.state[16], this.state[5],
-
-          this.state[18], this.state[19], this.state[26],
-          this.state[21], this.state[22], this.state[17],
-          this.state[24], this.state[25], this.state[8]
-        ]
-        this.updatePieceState()
+            this.state[18], this.state[19], this.state[26],
+            this.state[21], this.state[22], this.state[17],
+            this.state[24], this.state[25], this.state[8]
+          ],
+          'X', -1
+        )
       }
 
       async Rp () {
-        if (this.busy) { return }
-        this.busy = true
-        const pieceIndexes = [2, 5, 8, 11, 14, 17, 20, 23, 26]
-        const promises = []
-        for (const index of pieceIndexes) {
-          const piece = this.state[index]
-          promises.push(rotatePiece(piece, 'X', 1))
-          piece.rotX += (Math.PI / 2)
-        }
-        await Promise.all(promises)
-        this.busy = false
-        
-        this.state = [
-          this.state[0], this.state[1], this.state[8],
-          this.state[3], this.state[4], this.state[17],
-          this.state[6], this.state[7], this.state[26],
+        await this.rotate(
+          [2, 5, 8, 11, 14, 17, 20, 23, 26],
+          [
+            this.state[0], this.state[1], this.state[8],
+            this.state[3], this.state[4], this.state[17],
+            this.state[6], this.state[7], this.state[26],
 
-          this.state[9], this.state[10], this.state[5],
-          this.state[12], this.state[13], this.state[14],
-          this.state[15], this.state[16], this.state[23],
+            this.state[9], this.state[10], this.state[5],
+            this.state[12], this.state[13], this.state[14],
+            this.state[15], this.state[16], this.state[23],
 
-          this.state[18], this.state[19], this.state[2],
-          this.state[21], this.state[22], this.state[11],
-          this.state[24], this.state[25], this.state[20],
-        ]
-        this.updatePieceState()
+            this.state[18], this.state[19], this.state[2],
+            this.state[21], this.state[22], this.state[11],
+            this.state[24], this.state[25], this.state[20],
+          ],
+          'X', 1
+        )
       }
 
       async F () {
-        if (this.busy) { return }
-        this.busy = true
-        const pieceIndexes = [6, 7, 8, 15, 16, 17, 24, 25, 26]
-        const promises = []
-        for (const index of pieceIndexes) {
-          const piece = this.state[index]
-          promises.push(rotatePiece(piece, 'Y', 1))
-          piece.rotY += (Math.PI / 2)
-        }
-        await Promise.all(promises)
-        this.busy = false
-        this.state = [
-          this.state[0], this.state[1], this.state[2],
-          this.state[3], this.state[4], this.state[5],
-          this.state[8], this.state[17], this.state[26],  
+        await this.rotate(
+          [6, 7, 8, 15, 16, 17, 24, 25, 26],
+          [
+            this.state[0], this.state[1], this.state[2],
+            this.state[3], this.state[4], this.state[5],
+            this.state[8], this.state[17], this.state[26],  
 
-          this.state[9], this.state[10], this.state[11],
-          this.state[12], this.state[13], this.state[14],
-          this.state[7], this.state[16], this.state[25],       
+            this.state[9], this.state[10], this.state[11],
+            this.state[12], this.state[13], this.state[14],
+            this.state[7], this.state[16], this.state[25],       
 
-          this.state[18], this.state[19], this.state[20],
-          this.state[21], this.state[22], this.state[23],
-          this.state[6], this.state[15], this.state[24],          
-        ]
-        this.updatePieceState()
+            this.state[18], this.state[19], this.state[20],
+            this.state[21], this.state[22], this.state[23],
+            this.state[6], this.state[15], this.state[24],          
+          ]
+          , 'Y', 1
+        )
       }
 
       async Fp () {
-        if (this.busy) { return }
-        this.busy = true
-        const pieceIndexes = [6, 7, 8, 15, 16, 17, 24, 25, 26]
-        const promises = []
-        for (const index of pieceIndexes) {
-          const piece = this.state[index]
-          promises.push(rotatePiece(piece, 'Y', -1))
-          piece.rotY -= (Math.PI / 2)
-        }
-        await Promise.all(promises)
-        this.busy = false
-        this.state = [
-          this.state[0], this.state[1], this.state[2],
-          this.state[3], this.state[4], this.state[5],
-          this.state[24], this.state[15], this.state[6],
+        await this.rotate(
+          [6, 7, 8, 15, 16, 17, 24, 25, 26],
+          [
+            this.state[0], this.state[1], this.state[2],
+            this.state[3], this.state[4], this.state[5],
+            this.state[24], this.state[15], this.state[6],
 
-          this.state[9], this.state[10], this.state[11],
-          this.state[12], this.state[13], this.state[14],
-          this.state[25], this.state[16], this.state[7],
+            this.state[9], this.state[10], this.state[11],
+            this.state[12], this.state[13], this.state[14],
+            this.state[25], this.state[16], this.state[7],
 
-          this.state[18], this.state[19], this.state[20],
-          this.state[21], this.state[22], this.state[23],
-          this.state[26], this.state[17], this.state[8],
-        ]
-        this.updatePieceState()
+            this.state[18], this.state[19], this.state[20],
+            this.state[21], this.state[22], this.state[23],
+            this.state[26], this.state[17], this.state[8],
+          ],
+          'Y', -1
+        )
       }
     }
 
     function correctRotation (rotation) {
       // TODO
       return rotation
+    }
+
+    function rad2deg (rad) {
+      return rad * 180 / Math.PI
     }
 
     /*
@@ -389,7 +394,19 @@
     renderer.setSize( width, height);
     document.body.appendChild( renderer.domElement );
 
-    const cube = new Cube(scene)
+    const cube = new Cube([
+      'Cyob', 'Eyb', 'Cybr',
+      'Eyo', 'My', 'Eyr',
+      'Cygo', 'Eyg', 'Cyrg',
+
+      'Ebo', 'Mb', 'Erb',
+      'Mo', 'X', 'Mr',
+      'Eog', 'Mg', 'Egr',
+
+      'Cwbo', 'Ewb', 'Cwrb',
+      'Ewo', 'Mw', 'Ewr',
+      'Cwog', 'Ewg', 'Cwgr'
+    ], scene)
 
     const axesHelper = new THREE.AxesHelper( 5 );
     scene.add( axesHelper );
@@ -433,24 +450,23 @@
         const rotationPerTick = ((Math.PI / 2) / 60) * direction
         const matrix = new THREE.Matrix4()
         matrix['makeRotation' + axis](rotationPerTick)
+
+        const wrapper = new THREE.Object3D();
+        wrapper.add(piece.presence)
+        scene.add(wrapper)
+        scene.remove(piece.presence)
+        piece.wrapper = wrapper
         
         piece.currentAnimation = () => {
           if (piece.ticks < 59) {
             requestAnimationFrame( piece.currentAnimation );
           }
           else {
-            // Create new un-rotated object so that next animation
-            // does not twist the peice
-            const newPresence = new THREE.Object3D();
-            newPresence.add(piece.presence);
-            scene.add(newPresence)
-            piece.presence = newPresence
-
             resolve()
           }
           
-          piece.presence.position.applyMatrix4(matrix)
-          piece.presence.rotation[axis.toLowerCase()] += rotationPerTick
+          wrapper.position.applyMatrix4(matrix)
+          wrapper.rotation[axis.toLowerCase()] += rotationPerTick
 
           renderer.render( scene, camera );
           piece.ticks++;
