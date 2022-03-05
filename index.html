@@ -9,8 +9,11 @@
   <script type="module" src="https://unpkg.com/@fluentui/web-components"></script>
 </head>
 <body>
-  <fluent-button x-data appearance="accent" @click="test">Start</fluent-button>
-  <fluent-button x-data appearance="accent" @click="reset">Reset</fluent-button>
+  <fluent-button x-data appearance="accent" x-bind:disabled="cube.busy" @click="cube.R()">R</fluent-button>
+  <fluent-button x-data appearance="accent" x-bind:disabled="cube.busy" @click="cube.Rp()">R'</fluent-button>
+  <fluent-button x-data appearance="accent" x-bind:disabled="cube.busy" @click="cube.F()">F</fluent-button>
+  <fluent-button x-data appearance="accent" x-bind:disabled="cube.busy" @click="cube.Fp()">F'</fluent-button>
+  <fluent-button x-data appearance="accent" x-bind:disabled="cube.busy" @click="reset">Reset</fluent-button>
   
   <script src="js/three.js"></script>
   <script src="js/OrbitControls.js"></script>
@@ -64,40 +67,43 @@
       if (id.includes('y')) {
         faces.b = new THREE.Color('yellow')
       } else {
-        faces.b = new THREE.Color('black')
+        faces.b = new THREE.Color('gray')
       }
       if (id.includes('w')) {
         faces.t = new THREE.Color('white')
       } else {
-        faces.t = new THREE.Color('black')
+        faces.t = new THREE.Color('gray')
       }
       if (id.includes('b')) {
         faces.n = new THREE.Color('blue')
       } else {
-        faces.n = new THREE.Color('black')
+        faces.n = new THREE.Color('gray')
       }
       if (id.includes('g')) {
         faces.s = new THREE.Color('green')
       } else {
-        faces.s = new THREE.Color('black')
+        faces.s = new THREE.Color('gray')
       }
       if (id.includes('r')) {
         faces.e = new THREE.Color('red')
       } else {
-        faces.e = new THREE.Color('black')
+        faces.e = new THREE.Color('gray')
       }
       if (id.includes('o')) {
         faces.w = new THREE.Color('orange')
       } else {
-        faces.w = new THREE.Color('black')
+        faces.w = new THREE.Color('gray')
       }
       return faces
     }
 
     class Piece {
-      constructor(id, posX, posY, posZ) {
+      constructor(id, posX, posY, posZ, index) {
         this.id = id;
         this.faces = facesFromId(id);
+
+        this.index = index
+        this.originalIndex = index
 
         this.rotX = 0
         this.rotY = 0
@@ -109,10 +115,14 @@
         this.originalRotX = this.rotX
         this.originalRotY = this.rotY
         this.originalRotZ = this.rotZ
-        this.originalPosX = this.xPos
-        this.originalPosY = this.yPos
-        this.originalPosZ = this.zPos
+        this.originalPosX = this.posX
+        this.originalPosY = this.posY
+        this.originalPosZ = this.posZ
 
+        this.render()
+      }
+
+      render () {
         const geometry = new THREE.BoxGeometry(1, 1, 1).toNonIndexed()
         const material = new THREE.MeshBasicMaterial( { vertexColors: true } )
         const positionAttribute = geometry.getAttribute( 'position' )
@@ -137,7 +147,11 @@
         }
         geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) )
         const cube = new THREE.Mesh( geometry, material )
-        cube.position.set(posX, posY, posZ)
+        cube.position.set(this.posX, this.posY, this.posZ)
+        cube.rotation.x = this.rotX;
+        cube.rotation.y = this.rotY;
+        cube.rotation.z = this.rotZ;
+
         this.presence = cube;
       }
     }
@@ -160,27 +174,210 @@
     // https://www.kaggle.com/antbob/rubiks-cube-cfop-solutions
 
     class Cube {
-      constructor() {
+      busy = false
+      
+      constructor(scene) {
+        this.scene = scene
         this.state = [
           
-          new Piece('Cyob', -1.1, 1.1, -1.1), new Piece('Eyb', 0, 1.1, -1.1), new Piece('Cybr', 1.1, 1.1, -1.1),
-          new Piece('Eyo', -1.1, 0, -1.1), new Piece('My', 0, 0, -1.1), new Piece('Eyr', 1.1, 0, -1.1),
-          new Piece('Cygo', -1.1, -1.1, -1.1), new Piece('Eyg', 0, -1.1, -1.1), new Piece('Cyrg', 1.1, -1.1, -1.1),
+          new Piece('Cyob', -1.1, 1.1, -1.1, 0), new Piece('Eyb', 0, 1.1, -1.1, 1), new Piece('Cybr', 1.1, 1.1, -1.1, 2),
+          new Piece('Eyo', -1.1, 0, -1.1, 3), new Piece('My', 0, 0, -1.1, 4), new Piece('Eyr', 1.1, 0, -1.1, 5),
+          new Piece('Cygo', -1.1, -1.1, -1.1, 6), new Piece('Eyg', 0, -1.1, -1.1, 7), new Piece('Cyrg', 1.1, -1.1, -1.1, 8),
 
-          new Piece('Ebo', -1.1, 1.1, 0), new Piece('Mb', 0, 1.1, 0), new Piece('Erb', 1.1, 1.1, 0),
-          new Piece('Mo', -1.1, 0, 0), new Piece('X', 0, 0, 0), new Piece('Mr', 1.1, 0, 0),
-          new Piece('Eog', -1.1, -1.1, 0), new Piece('Mg', 0, -1.1, 0), new Piece('Egr', 1.1, -1.1, 0),
+          new Piece('Ebo', -1.1, 1.1, 0, 9), new Piece('Mb', 0, 1.1, 0, 10), new Piece('Erb', 1.1, 1.1, 0, 11),
+          new Piece('Mo', -1.1, 0, 0, 12), new Piece('X', 0, 0, 0, 13), new Piece('Mr', 1.1, 0, 0, 14),
+          new Piece('Eog', -1.1, -1.1, 0, 15), new Piece('Mg', 0, -1.1, 0, 16), new Piece('Egr', 1.1, -1.1, 0, 17),
 
-          new Piece('Cwbo', -1.1, 1.1, 1.1), new Piece('Ewb', 0, 1.1, 1.1), new Piece('Cwrb', 1.1, 1.1, 1.1),
-          new Piece('Ewo', -1.1, 0, 1.1), new Piece('Mw', 0, 0, 1.1), new Piece('Ewr', 1.1, 0, 1.1),
-          new Piece('Cwog', -1.1, -1.1, 1.1), new Piece('Ewg', 0, -1.1, 1.1), new Piece('Cwgr', 1.1, -1.1, 1.1)
+          new Piece('Cwbo', -1.1, 1.1, 1.1, 18), new Piece('Ewb', 0, 1.1, 1.1, 19), new Piece('Cwrb', 1.1, 1.1, 1.1, 20),
+          new Piece('Ewo', -1.1, 0, 1.1, 21), new Piece('Mw', 0, 0, 1.1, 22), new Piece('Ewr', 1.1, 0, 1.1, 23),
+          new Piece('Cwog', -1.1, -1.1, 1.1, 24), new Piece('Ewg', 0, -1.1, 1.1, 25), new Piece('Cwgr', 1.1, -1.1, 1.1, 26)
           
         ]
+        for (const piece of this.state) {
+          scene.add(piece.presence)
+        }
+      }
+
+      reset () {
+        for (const piece of this.state) {
+          piece.rotX = piece.originalRotX;
+          piece.rotY = piece.originalRotY;
+          piece.rotZ = piece.originalRotZ;
+          piece.posX = piece.originalPosX;
+          piece.posY = piece.originalPosY;
+          piece.posZ = piece.originalPosZ;
+          piece.index = piece.originalIndex
+          piece.render()
+        }
+
+        this.state.sort((a, b) => (a.index > b.index) ? 1 : -1)
+
+        // TODO - restore pieces positions in state
+      }
+
+      updatePieceState () {
+        let i = 0
+        for (const piece of this.state) {
+          piece.index = i
+          i++
+        }
+
+        // // Align rotations
+        // piece.rotX = this.correctRotation(piece.rotX)
+        // piece.rotY = this.correctRotation(piece.rotY)
+        // piece.rotZ = this.correctRotation(piece.rotZ)
+
+        // // Align positions
+        // piece.posX = Math.round(piece.presence.position.x)
+        // piece.posY = Math.round(piece.presence.position.y)
+        // piece.posZ = Math.round(piece.presence.position.z)
+        // if (piece.posX === 1) { piece.posX = 1.1}
+        // if (piece.posX === -1) { piece.posX = -1.1}
+        // if (piece.posY === 1) { piece.posY = 1.1}
+        // if (piece.posY === -1) { piece.posY = -1.1}
+        // if (piece.posZ === 1) { piece.posZ = 1.1}
+        // if (piece.posZ === -1) { piece.posZ = -1.1}
+        // // piece.presence.position.x = piece.posX
+        // // piece.presence.position.y = piece.posY
+        // // piece.presence.position.z = piece.posZ
+
+        // console.log(piece.posX, piece.posY, piece.posX)
+      }
+
+      async R () {
+        if (this.busy) { return }
+        this.busy = true
+        const pieceIndexes = [2, 5, 8, 11, 14, 17, 20, 23, 26]
+        const promises = []
+        for (const index of pieceIndexes) {
+          const piece = this.state[index]
+          promises.push(rotatePiece(piece, 'X', -1))
+          piece.rotX -= (Math.PI / 2)
+        }
+        await Promise.all(promises)
+
+        this.busy = false
+        
+        this.state = [
+          this.state[0], this.state[1], this.state[20],
+          this.state[3], this.state[4], this.state[11],
+          this.state[6], this.state[7], this.state[2],
+
+          this.state[9], this.state[10], this.state[23],
+          this.state[12], this.state[13], this.state[14],
+          this.state[15], this.state[16], this.state[5],
+
+          this.state[18], this.state[19], this.state[26],
+          this.state[21], this.state[22], this.state[17],
+          this.state[24], this.state[25], this.state[8]
+        ]
+        this.updatePieceState()
+      }
+
+      async Rp () {
+        if (this.busy) { return }
+        this.busy = true
+        const pieceIndexes = [2, 5, 8, 11, 14, 17, 20, 23, 26]
+        const promises = []
+        for (const index of pieceIndexes) {
+          const piece = this.state[index]
+          promises.push(rotatePiece(piece, 'X', 1))
+          piece.rotX += (Math.PI / 2)
+        }
+        await Promise.all(promises)
+        this.busy = false
+        
+        this.state = [
+          this.state[0], this.state[1], this.state[8],
+          this.state[3], this.state[4], this.state[17],
+          this.state[6], this.state[7], this.state[26],
+
+          this.state[9], this.state[10], this.state[5],
+          this.state[12], this.state[13], this.state[14],
+          this.state[15], this.state[16], this.state[23],
+
+          this.state[18], this.state[19], this.state[2],
+          this.state[21], this.state[22], this.state[11],
+          this.state[24], this.state[25], this.state[20],
+        ]
+        this.updatePieceState()
+      }
+
+      async F () {
+        if (this.busy) { return }
+        this.busy = true
+        const pieceIndexes = [6, 7, 8, 15, 16, 17, 24, 25, 26]
+        const promises = []
+        for (const index of pieceIndexes) {
+          const piece = this.state[index]
+          promises.push(rotatePiece(piece, 'Y', 1))
+          piece.rotY += (Math.PI / 2)
+        }
+        await Promise.all(promises)
+        this.busy = false
+        this.state = [
+          this.state[0], this.state[1], this.state[2],
+          this.state[3], this.state[4], this.state[5],
+          this.state[8], this.state[17], this.state[26],  
+
+          this.state[9], this.state[10], this.state[11],
+          this.state[12], this.state[13], this.state[14],
+          this.state[7], this.state[16], this.state[25],       
+
+          this.state[18], this.state[19], this.state[20],
+          this.state[21], this.state[22], this.state[23],
+          this.state[6], this.state[15], this.state[24],          
+        ]
+        this.updatePieceState()
+      }
+
+      async Fp () {
+        if (this.busy) { return }
+        this.busy = true
+        const pieceIndexes = [6, 7, 8, 15, 16, 17, 24, 25, 26]
+        const promises = []
+        for (const index of pieceIndexes) {
+          const piece = this.state[index]
+          promises.push(rotatePiece(piece, 'Y', -1))
+          piece.rotY -= (Math.PI / 2)
+        }
+        await Promise.all(promises)
+        this.busy = false
+        this.state = [
+          this.state[0], this.state[1], this.state[2],
+          this.state[3], this.state[4], this.state[5],
+          this.state[24], this.state[15], this.state[6],
+
+          this.state[9], this.state[10], this.state[11],
+          this.state[12], this.state[13], this.state[14],
+          this.state[25], this.state[16], this.state[7],
+
+          this.state[18], this.state[19], this.state[20],
+          this.state[21], this.state[22], this.state[23],
+          this.state[26], this.state[17], this.state[8],
+        ]
+        this.updatePieceState()
       }
     }
 
+    function correctRotation (rotation) {
+      // TODO
+      return rotation
+    }
 
+    /*
+    this.state[0], this.state[1], this.state[2],
+    this.state[3], this.state[4], this.state[5],
+    this.state[6], this.state[7], this.state[8],
 
+    this.state[9], this.state[10], this.state[11],
+    this.state[12], this.state[13], this.state[14],
+    this.state[15], this.state[16], this.state[17],
+
+    this.state[18], this.state[19], this.state[20],
+    this.state[21], this.state[22], this.state[23],
+    this.state[24], this.state[25], this.state[26],
+    */
 
     const scene = new THREE.Scene();
     const width = 400; // window.innerWidth
@@ -192,69 +389,16 @@
     renderer.setSize( width, height);
     document.body.appendChild( renderer.domElement );
 
-    const cube = new Cube()
-    for (const piece of cube.state) {
-      scene.add(piece.presence)
-    }
-
-
-    // const geometry = new THREE.BoxGeometry(1, 1, 1).toNonIndexed();
-    // const material = new THREE.MeshBasicMaterial( { vertexColors: true } ); 
-    // const positionAttribute = geometry.getAttribute( 'position' );
-    // const colorMap = [
-    //   new THREE.Color('white'), // right
-    //   new THREE.Color('yellow'), // left
-    //   new THREE.Color('blue'), // up
-    //   new THREE.Color('orange'), // down
-    //   new THREE.Color('red'), // top
-    //   new THREE.Color('green'), // bottom
-    // ]
-    // let colorIndex = 0;
-		// const colors = [];
-    // // Found here : https://jsfiddle.net/bsjgftqc/2/
-    // // Why is this such a pain in the ass?
-		// for ( let i = 0; i < positionAttribute.count; i += 3 ) {
-    //   const color = colorMap[Math.floor(i / 6)]
-		// 	colors.push( color.r, color.g, color.b );
-		// 	colors.push( color.r, color.g, color.b );
-		// 	colors.push( color.r, color.g, color.b );
-		// }
-    // console.log(colors)
-    // geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
-    // const cube = new THREE.Mesh( geometry, material );
-
-    // const cube2 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial( { color: 0x0000ff } ))
-    // const cube3 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial( { color: 0xff0000 } ))
-    
-    // cube.position.set(1.1, 1.1, 0)
-    // cube2.position.set(0, 1.1,0)
-    // cube3.position.set(-1.1, 1.1,0)
-    // scene.add( cube );
-    // scene.add( cube2 );
-    // scene.add( cube3 );
-
-    // const group = new THREE.Group();
-    // group.add( cube );
-    // group.add( cube2 );
-    // group.add( cube3 );
-    // scene.add(group)
-
-    // const sphere = new THREE.Mesh( new THREE.SphereGeometry( 0.5, 32, 16 ), new THREE.MeshBasicMaterial( { color: 0xffff00 } ) );
-    // scene.add( sphere );
-
-    // pivotPoint = new THREE.Object3D();
-    // cube.add(pivotPoint);
+    const cube = new Cube(scene)
 
     const axesHelper = new THREE.AxesHelper( 5 );
     scene.add( axesHelper );
 
     camera.position.x = 0;
-    camera.position.y = 1;
-    camera.position.z = 8;
+    camera.position.y = -8;
+    camera.position.z = 1;
     camera.lookAt(new THREE.Vector3(0,0,0))
     const controls = new THREE.OrbitControls( camera, renderer.domElement );
-
-    let ticks = 0;
 
     function animateCamera() {
       requestAnimationFrame( animateCamera );
@@ -264,68 +408,58 @@
     }
     animateCamera()
 
-    function testRotate() {
-      if (ticks < 100) {
-        requestAnimationFrame( testRotate );
-      }
-      cube.rotation.x += 0.01;
-      // cube.rotation.y += 0.01;
-      renderer.render( scene, camera );
-      ticks++;
-    }
-
     function reset() {
       for (const piece of cube.state) {
-        piece.presence.rotation.x = piece.originalRotX;
-        piece.presence.rotation.y = piece.originalRotY;
-        piece.presence.rotation.z = piece.originalRotZ;
-        piece.presence.position.x = piece.originalPosX;
-        piece.presence.position.y = piece.originalPosY;
-        piece.presence.position.z = piece.originalPosZ;
+        scene.remove(piece.presence)
+      }
+      cube.reset()
+      for (const piece of cube.state) {
+        scene.add(piece.presence)
       }
 
+      // Reset camera
       camera.position.x = 0;
-      camera.position.y = 1;
-      camera.position.z = 8;
+      camera.position.y = -8;
+      camera.position.z = 1;
 
       renderer.render( scene, camera );
       requestAnimationFrame( () => {} )
     }
 
-    function animateRotateFace() {
-      if (ticks < 59) {
-        requestAnimationFrame( animateRotateFace );
-      }
-      const radians = 90 * Math.PI / 180;
-      rotateAboutPoint(group, new THREE.Vector3(0, 0 ,0), new THREE.Vector3(0, 0 ,1), radians / 60)
-      renderer.render( scene, camera );
-      ticks++;
+    function rotatePiece(piece, axis, direction) {
+      return new Promise((resolve, reject) => {
+        piece.ticks = 0
+
+        const rotationPerTick = ((Math.PI / 2) / 60) * direction
+        const matrix = new THREE.Matrix4()
+        matrix['makeRotation' + axis](rotationPerTick)
+        
+        piece.currentAnimation = () => {
+          if (piece.ticks < 59) {
+            requestAnimationFrame( piece.currentAnimation );
+          }
+          else {
+            // Create new un-rotated object so that next animation
+            // does not twist the peice
+            const newPresence = new THREE.Object3D();
+            newPresence.add(piece.presence);
+            scene.add(newPresence)
+            piece.presence = newPresence
+
+            resolve()
+          }
+          
+          piece.presence.position.applyMatrix4(matrix)
+          piece.presence.rotation[axis.toLowerCase()] += rotationPerTick
+
+          renderer.render( scene, camera );
+          piece.ticks++;
+        }
+        piece.currentAnimation()
+      })
     }
 
-    function rotateAboutPoint(obj, point, axis, theta, pointIsWorld){
-      pointIsWorld = (pointIsWorld === undefined)? false : pointIsWorld;
-
-      if(pointIsWorld){
-          obj.parent.localToWorld(obj.position); // compensate for world coordinate
-      }
-
-      obj.position.sub(point); // remove the offset
-      obj.position.applyAxisAngle(axis, theta); // rotate the POSITION
-      obj.position.add(point); // re-add the offset
-
-      if(pointIsWorld){
-          obj.parent.worldToLocal(obj.position); // undo world coordinates compensation
-      }
-
-      obj.rotateOnAxis(axis, theta); // rotate the OBJECT
-    }
-
-    renderer.render( scene, camera );
-
-    function test() {
-      ticks = 0;
-      animateRotateFace()
-    }
+    renderer.render(scene, camera);
   </script>
 </body>
 </html>
