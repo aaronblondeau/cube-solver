@@ -105,13 +105,7 @@
         this.index = index
         this.originalIndex = index
 
-        this.rotX = 0
-        this.rotY = 0
-        this.rotZ = 0
-
-        this.originalRotX = this.rotX
-        this.originalRotY = this.rotY
-        this.originalRotZ = this.rotZ
+        this.history = []
 
         this.render()
       }
@@ -143,9 +137,19 @@
         const cube = new THREE.Mesh( geometry, material )
         const pos = positionMap[this.index]
         cube.position.set(pos.X, pos.Y, pos.Z)
-        cube.rotation.x = this.rotX;
-        cube.rotation.y = this.rotY;
-        cube.rotation.z = this.rotZ;
+
+        // Replay rotation history on world axis (removes skew due to animation frames' precision loss)
+        for (const hist of this.history) {
+          if (hist.axis === 'X') {
+            cube.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2 * hist.direction)
+          }
+          if (hist.axis === 'Y') {
+            cube.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), Math.PI / 2 * hist.direction)
+          }
+          if (hist.axis === 'Z') {
+            cube.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), Math.PI / 2 * hist.direction)
+          }
+        }
 
         this.presence = cube;
       }
@@ -228,9 +232,7 @@
 
       reset () {
         for (const piece of this.state) {
-          piece.rotX = piece.originalRotX
-          piece.rotY = piece.originalRotY
-          piece.rotZ = piece.originalRotZ
+          piece.history = []
           piece.index = piece.originalIndex
           piece.render()
         }
@@ -242,13 +244,7 @@
         let i = 0
         for (const piece of this.state) {
           piece.index = i
-
-          // console.log(piece.id, piece.rotX * 180 / Math.PI, piece.rotY * 180 / Math.PI, piece.rotZ * 180 / Math.PI)
           i++
-
-          if (piece.id === 'Cwgr') {
-            console.log(rad2deg(piece.rotX), rad2deg(piece.rotY), rad2deg(piece.rotZ))
-          }
         }
       }
 
@@ -259,7 +255,6 @@
         for (const index of pieceIndexes) {
           const piece = this.state[index]
           promises.push(rotatePiece(piece, axis, direction))
-          piece['rot' + axis] += (Math.PI / 2) * direction
         }
         await Promise.all(promises)
 
@@ -270,7 +265,6 @@
         for (const index of pieceIndexes) {
           const piece = this.state[index]
           // piece.wrapper.remove(piece.presence)
-          
           piece.render()
           scene.add(piece.presence)
 
@@ -417,6 +411,10 @@
     camera.lookAt(new THREE.Vector3(0,0,0))
     const controls = new THREE.OrbitControls( camera, renderer.domElement );
 
+    controls.addEventListener( 'change', () => {
+      console.log(camera.position.x, camera.position.y, camera.position.z)
+    } )
+
     function animateCamera() {
       requestAnimationFrame( animateCamera );
       // required if controls.enableDamping or controls.autoRotate are set to true
@@ -448,14 +446,14 @@
         piece.ticks = 0
 
         const rotationPerTick = ((Math.PI / 2) / 60) * direction
-        const matrix = new THREE.Matrix4()
-        matrix['makeRotation' + axis](rotationPerTick)
 
         const wrapper = new THREE.Object3D();
         wrapper.add(piece.presence)
         scene.add(wrapper)
         scene.remove(piece.presence)
         piece.wrapper = wrapper
+
+        piece.history.push({axis, direction})
         
         piece.currentAnimation = () => {
           if (piece.ticks < 59) {
@@ -465,7 +463,6 @@
             resolve()
           }
           
-          wrapper.position.applyMatrix4(matrix)
           wrapper.rotation[axis.toLowerCase()] += rotationPerTick
 
           renderer.render( scene, camera );
